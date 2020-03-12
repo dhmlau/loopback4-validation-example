@@ -20,6 +20,12 @@ import {
 import {CoffeeShop} from '../models';
 import {CoffeeShopRepository} from '../repositories';
 
+// Add these imports for interceptors
+import {inject, intercept} from '@loopback/core';
+import {ValidatePhoneNumInterceptor} from '../interceptors';
+
+// Add this line to apply interceptor to this class
+@intercept(ValidatePhoneNumInterceptor.BINDING_KEY)
 export class CoffeeShopController {
   constructor(
     @repository(CoffeeShopRepository)
