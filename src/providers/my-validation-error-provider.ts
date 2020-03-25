@@ -24,7 +24,7 @@ export class MyValidationErrorProvider implements Provider<Reject> {
     if (
       error &&
       error instanceof HttpErrors.UnprocessableEntity &&
-      request.url == '/coffee-shops'
+      request.url === '/coffee-shops'
     ) {
       const newError = {
         message: 'My customized validation error message',
