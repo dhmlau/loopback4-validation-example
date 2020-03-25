@@ -1,5 +1,9 @@
+// Copyright IBM Corp. 2020. All Rights Reserved.
+// Node module: @loopback/example-validation-app
+// This file is licensed under the MIT License.
+// License text available at https://opensource.org/licenses/MIT
+
 import {
-  /* inject, */
   bind,
   Interceptor,
   InvocationContext,
@@ -8,7 +12,6 @@ import {
   ValueOrPromise,
 } from '@loopback/context';
 import {CoffeeShop} from '../models';
-import {HttpErrors} from '@loopback/rest';
 
 /**
  * This class will be bound to the application as an `Interceptor` during
@@ -34,6 +37,8 @@ export class ValidatePhoneNumInterceptor implements Provider<Interceptor> {
 
   /**
    * The logic to intercept an invocation
+   * It checks the area code of the phone number to make sure it matches
+   * the provided city name.
    * @param invocationCtx - Invocation context
    * @param next - A function to invoke next interceptor or the target method
    */
@@ -41,35 +46,43 @@ export class ValidatePhoneNumInterceptor implements Provider<Interceptor> {
     invocationCtx: InvocationContext,
     next: () => ValueOrPromise<InvocationResult>,
   ) {
-    try {
-      // Add pre-invocation logic here
-      const coffeeShop: CoffeeShop = new CoffeeShop();
-      if (invocationCtx.methodName == 'create')
-        Object.assign(coffeeShop, invocationCtx.args[0]);
-      else if (invocationCtx.methodName == 'updateById')
-        Object.assign(coffeeShop, invocationCtx.args[1]);
+    // Add pre-invocation logic here
+    let coffeeShop: CoffeeShop | undefined;
+    if (invocationCtx.methodName === 'create')
+      coffeeShop = invocationCtx.args[0];
+    else if (invocationCtx.methodName === 'updateById')
+      coffeeShop = invocationCtx.args[1];
 
-      if (
-        coffeeShop &&
-        !this.isAreaCodeValid(coffeeShop.phoneNum, coffeeShop.city)
-      ) {
-        throw new HttpErrors.InternalServerError(
-          'Area code and city do not match',
-        );
-      }
-
-      const result = await next();
-      // Add post-invocation logic here
-      return result;
-    } catch (err) {
-      // Add error handling logic here
+    if (
+      coffeeShop &&
+      !this.isAreaCodeValid(coffeeShop.phoneNum, coffeeShop.city)
+    ) {
+      const err: ValidationError = new ValidationError(
+        'Area code and city do not match',
+      );
+      err.statusCode = 422;
       throw err;
     }
+
+    const result = await next();
+    // Add post-invocation logic here
+    return result;
   }
 
   isAreaCodeValid(phoneNum: string, city: string): Boolean {
-    // add some logic here
+    // add some dummy logic here
+    const areaCode: string = phoneNum.slice(0, 3);
+
+    if (city.toLowerCase() === 'toronto') {
+      if (areaCode === '416' || areaCode === '647') return true;
+      else return false;
+    }
     // it always returns true for now
     return true;
   }
+}
+
+class ValidationError extends Error {
+  code?: string;
+  statusCode?: number;
 }
